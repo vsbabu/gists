@@ -1,0 +1,24 @@
+#!/bin/bash
+PAT=$1
+SUDOUSER="yourlogintomachines@" #keep this as empty if you just want to connect by default account
+RSCRIPT=`mktemp`
+cat > $RSCRIPT <<EOF
+#!/bin/bash
+sudo su -c "grep -i \"$PAT\"  ~root/.ssh/authorized_keys"
+cd /home
+sudo su -c "grep -i \"$PAT\"  **/.ssh/authorized_keys"
+EOF
+for rhost in `grep Hostname ~/.ssh/config |grep -v "#"|awk '{print $2;}'|sort|uniq`
+do
+  printf "$rhost "
+  scp -o ConnectTimeout=5 $RSCRIPT ${SUDOUSER}${rhost}:/tmp/  > /dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    printf " - connect\n"
+    ssh ${SUDOUSER}${rhost} "chmod 700 ${RSCRIPT}"
+    ssh ${SUDOUSER}${rhost} "${RSCRIPT}" | sed "s/^/${rhost}:/g"
+    ssh ${SUDOUSER}${rhost} "rm -f ${RSCRIPT}"
+  else
+    printf " - noconnect\n"
+  fi
+done
+rm -f ${RSCRIPT}

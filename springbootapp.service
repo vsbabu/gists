@@ -1,0 +1,17 @@
+[Unit]
+Description=Spring Boot My Application JVM
+After=syslog.target
+ 
+[Service]
+User=myappuser
+# send to /dev/null so that syslog doesn't get flooded
+Environment='STDOUT=/dev/null'
+# logback if any on stderr can be sent here; ensure myappuser has access
+Environment='STDERR=/some/path/myapp/logs/stderr.log'
+# ensure that you've logging.path defined in your config file springboot looks at
+ExecStart=/bin/sh -c "/some/path/myapp.jar  > ${STDOUT} 2> ${STDERR}"
+SuccessExitStatus=143 
+ 
+[Install] 
+WantedBy=multi-user.target
+Alias=myapp.service
