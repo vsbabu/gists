@@ -32,6 +32,8 @@ class PracticeQuestion:
     def gen(self) -> Tuple[int, int]:
         l = choice(range(self.min_left, self.max_left))
         r = choice(range(self.min_right, self.max_right))
+        if self.name in ('SUB', 'DIV') and l<r: #why make stuff complicated for children?
+            return r, l
         return l, r
 
     # brute code - should be generalized if possible
@@ -41,8 +43,7 @@ class PracticeQuestion:
             case "ADD":
                 r[0] = left + right
             case "SUB":
-                if (left >= right):
-                    r[0] = left - right
+                r[0] = left - right
             case "MUL":
                 r[0] = left * right
             case "DIV":
