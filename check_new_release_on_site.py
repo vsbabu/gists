@@ -25,6 +25,7 @@ import traceback
 import logging
 import sys
 import os
+import re
 
 
 @dataclass
@@ -44,7 +45,7 @@ class ReleaseSite:
         return self.found_release
 
     def get_download_url(self) -> str:
-        return self.download_url % (self.found_release)
+        return self.download_url.format(self.found_release)
 
     # remove FunctionType from list of pickled items
     def __getstate__(self):
@@ -67,7 +68,7 @@ if __name__ == "__main__":
     sites["Zen-browser"] = ReleaseSite(
         name="Zen-browser",
         url="https://zen-browser.app/release-notes/",
-        download_url="https://zen-browser.app/download/ manually %s",
+        download_url="https://zen-browser.app/download/ manually {0}",
         # fmt: off
         extractor=lambda x: x.find("section", class_="release-note-item").text.split("\n")[0].strip().split()[3] # pyright: ignore
         # fmt: on
@@ -75,9 +76,18 @@ if __name__ == "__main__":
     sites["SQLPage"] = ReleaseSite(
         name="SQLPage",
         url="https://github.com/sqlpage/SQLPage/tags",
-        download_url="https://github.com/sqlpage/SQLPage/releases/download/%s/sqlpage-linux.tgz",
+        download_url="https://github.com/sqlpage/SQLPage/releases/download/{0}/sqlpage-linux.tgz",
         # fmt: off
         extractor=lambda x: x.find("a", class_="Link--primary").text.strip() # pyright: ignore
+        # fmt: on
+    )
+
+    sites["Joplin"] = ReleaseSite(
+        name="Joplin",
+        url="https://joplinapp.org/help/install/",
+        download_url="https://objects.joplinusercontent.com/v{0}/Joplin-{0}.AppImage?source=JoplinWebsite&type=New",
+        # fmt: off
+        extractor=lambda x: x.find('a', href=re.compile(r".*?AppImage\?source=.*?")).get('href').split("/")[3][1:] #pyright: ignore
         # fmt: on
     )
 
