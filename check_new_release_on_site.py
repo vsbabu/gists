@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#     "bs4",
+#     "requests",
+# ]
+# ///
 """
 Quick python3 script to check if a new release has been done for some software I use. Currently, works for
 Zen Browser and SQLPage. been
@@ -70,7 +77,7 @@ if __name__ == "__main__":
         url="https://zen-browser.app/release-notes/",
         download_url="https://zen-browser.app/download/ manually {0}",
         # fmt: off
-        extractor=lambda x: x.find("section", class_="release-note-item").text.split("\n")[0].strip().split()[3] # pyright: ignore
+        extractor=lambda x: x.find("section", class_="release-note-item")['id'] # pyright: ignore
         # fmt: on
     )
     sites["SQLPage"] = ReleaseSite(
