@@ -1,14 +1,13 @@
 #!/bin/bash
 
 # Prevent frequent runs for expensive processes.
-# Note: Granularity level is only by days. To reduce it, see touch command
-#       in the script and change the date modifier.
 # Checked only in bash and in gnu/linux. Needs GNU Stat command to be present.
 #
 # ****************************** Usage *********************************************
 # in calling script, do this first:
-#    source ~/thisfile.sh <optional argument for number of days of cache_check>
-#         if no argument is given, it is taken as 1 day
+#    source ~/thisfile.sh <optional argument for time duration for cache_check> <optional for time unit of measure>
+#         if no argument is given, it is taken as 1 days. You can give 8 hours, 10 minutes etc.
+#         See "man touch" and read DATE STRING section.
 #         if argument is given as 0, it will assume script should be forced to run
 #
 # before you run rest of the commands in the calling script, do:
@@ -25,7 +24,8 @@
 #   other tasks in that script are completed successfully
 
 CACHE_DIR=~/.local/share/cache_check/
-CACHE_DAYS=${1:-1}
+CACHE_TIME=${1:-1}
+CACHE_TIME_UNIT=${2:-"days"}
 
 if [[ ! -d $CACHE_DIR ]]; then
   mkdir -p $CACHE_DIR
@@ -37,15 +37,15 @@ EXECUTE=false
 #make a key file name by replacing directory separators.
 CACHE_KEY=$(echo $CALLING_SCRIPT | sed 's/\//_/g')
 CACHE_FILE="${CACHE_DIR}/${CACHE_KEY}"
-CACHE_DAYS_AGO=/tmp/cache_check.$$
-touch -d "$CACHE_DAYS days ago" $CACHE_DAYS_AGO
+CACHE_TIME_AGO=/tmp/cache_check.$$
+touch -d "$CACHE_TIME $CACHE_TIME_UNIT ago" $CACHE_TIME_AGO
 
 # if cache_file is older than ago timestamp, go ahead
 # if cache_file doesn't exist, this test command will be true
-if [ "$CACHE_FILE" -ot "$CACHE_DAYS_AGO" ]; then
+if [ "$CACHE_FILE" -ot "$CACHE_TIME_AGO" ]; then
   EXECUTE=true
 fi
-if [ $CACHE_DAYS -eq 0 ]; then
+if [ $CACHE_TIME -eq 0 ]; then
   EXECUTE=true
 fi
 
