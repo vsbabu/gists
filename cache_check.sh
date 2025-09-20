@@ -16,8 +16,10 @@
 #
 #      cacheMarkComplete
 #   else
-#      echo "Skipping run - last run at:"
+#      echo -n "Skipping run - last run at: "
 #      cacheDate
+#      echo -n "Next run can be after: "
+#      nextAllowedDate
 #   fi
 #
 #   The last cacheMarkComplete is necessary, preferably after all the
@@ -61,4 +63,9 @@ function cacheMarkComplete() {
 
 function cacheDate() {
   echo "$(stat -c '%y' $CACHE_FILE)"
+}
+
+function nextAllowedDate() {
+  touch -r "$CACHE_FILE" -d "+$CACHE_TIME $CACHE_TIME_UNIT" $CACHE_TIME_AGO
+  echo "$(stat -c '%y' $CACHE_TIME_AGO)"
 }
