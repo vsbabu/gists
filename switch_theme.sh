@@ -28,7 +28,12 @@ if $TO_DARK; then
   sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/Code/User/settings.json
   sed -i --follow-symlinks "s/Latte/Frappé/g" ~/.config/Code/User/settings.json
   sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/btop/btop.conf
-  gsettings set org.cinnamon.desktop.interface gtk-theme 'Mint-Y-Dark-Aqua'
+  if [[ "$XDG_SESSION_DESKTOP" == "KDE" ]]; then
+    lookandfeeltool -a org.kde.breezedark.desktop
+  else
+    #TODO: fix with elif for cinnamon
+    gsettings set org.cinnamon.desktop.interface gtk-theme 'Mint-Y-Dark-Aqua'
+  fi
 else
   sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/wezterm/sv_common.lua
   sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/nvim/lua/plugins/colorscheme.lua
@@ -39,5 +44,10 @@ else
   sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/Code/User/settings.json
   sed -i --follow-symlinks "s/Frappé/Latte/g" ~/.config/Code/User/settings.json
   sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/btop/btop.conf
-  gsettings set org.cinnamon.desktop.interface gtk-theme 'Mint-Y-Aqua'
+  if [[ "$XDG_SESSION_DESKTOP" == "KDE" ]]; then
+    lookandfeeltool -a org.kde.breeze.desktop
+  else
+    #TODO: fix with elif for cinnamon
+    gsettings set org.cinnamon.desktop.interface gtk-theme 'Mint-Y-Aqua'
+  fi
 fi
