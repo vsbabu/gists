@@ -21,7 +21,9 @@ fi
 if $TO_DARK; then
   sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/wezterm/sv_common.lua
   sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/nvim/lua/plugins/colorscheme.lua
-  sed -i --follow-symlinks "s/delek/habamax/g" ~/.config/nvim/light.nvim.lua
+  sed -i --follow-symlinks "s/morning/habamax/g" ~/.config/nvim/light.nvim.lua
+  sed -i --follow-symlinks "s/000000/e5e9f0/g" ~/.config/nvim/light.nvim.lua
+  sed -i --follow-symlinks "s/eff1f5/2e3440/g" ~/.config/nvim/light.nvim.lua
   sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/doom/config.el
   sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/Code/User/settings.json
   sed -i --follow-symlinks "s/Latte/Frappé/g" ~/.config/Code/User/settings.json
@@ -30,7 +32,9 @@ if $TO_DARK; then
 else
   sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/wezterm/sv_common.lua
   sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/nvim/lua/plugins/colorscheme.lua
-  sed -i --follow-symlinks "s/habamax/habamax/g" ~/.config/nvim/light.nvim.lua
+  sed -i --follow-symlinks "s/habamax/morning/g" ~/.config/nvim/light.nvim.lua
+  sed -i --follow-symlinks "s/e5e9f0/000000/g" ~/.config/nvim/light.nvim.lua
+  sed -i --follow-symlinks "s/2e3440/eff1f5/g" ~/.config/nvim/light.nvim.lua
   sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/doom/config.el
   sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/Code/User/settings.json
   sed -i --follow-symlinks "s/Frappé/Latte/g" ~/.config/Code/User/settings.json
