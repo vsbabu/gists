@@ -19,19 +19,21 @@ fi
 # are already installed and the config files have one of it setup
 #  wezterm, lazyvim, doom-emacs, vscode, btop, desktop
 if $TO_DARK; then
-  sed -i "s/latte/frappe/g" ~/.config/wezterm/sv_common.lua
-  sed -i "s/latte/frappe/g" ~/.config/nvim/lua/plugins/colorscheme.lua
-  sed -i "s/latte/frappe/g" ~/.config/doom/config.el
-  sed -i "s/latte/frappe/g" ~/.config/Code/User/settings.json
-  sed -i "s/Latte/Frappé/g" ~/.config/Code/User/settings.json
-  sed -i "s/latte/frappe/g" ~/.config/btop/btop.conf
+  sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/wezterm/sv_common.lua
+  sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/nvim/lua/plugins/colorscheme.lua
+  sed -i --follow-symlinks "s/delek/habamax/g" ~/.config/nvim/light.nvim.lua
+  sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/doom/config.el
+  sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/Code/User/settings.json
+  sed -i --follow-symlinks "s/Latte/Frappé/g" ~/.config/Code/User/settings.json
+  sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/btop/btop.conf
   gsettings set org.cinnamon.desktop.interface gtk-theme 'Mint-Y-Dark-Aqua'
 else
-  sed -i "s/frappe/latte/g" ~/.config/wezterm/sv_common.lua
-  sed -i "s/frappe/latte/g" ~/.config/nvim/lua/plugins/colorscheme.lua
-  sed -i "s/frappe/latte/g" ~/.config/doom/config.el
-  sed -i "s/frappe/latte/g" ~/.config/Code/User/settings.json
-  sed -i "s/Frappé/Latte/g" ~/.config/Code/User/settings.json
-  sed -i "s/frappe/latte/g" ~/.config/btop/btop.conf
+  sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/wezterm/sv_common.lua
+  sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/nvim/lua/plugins/colorscheme.lua
+  sed -i --follow-symlinks "s/habamax/habamax/g" ~/.config/nvim/light.nvim.lua
+  sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/doom/config.el
+  sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/Code/User/settings.json
+  sed -i --follow-symlinks "s/Frappé/Latte/g" ~/.config/Code/User/settings.json
+  sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/btop/btop.conf
   gsettings set org.cinnamon.desktop.interface gtk-theme 'Mint-Y-Aqua'
 fi
