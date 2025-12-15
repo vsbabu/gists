@@ -18,6 +18,7 @@ fi
 # Switch between Catppuccin Frappe and Latte flavours. Assumption is that these
 # are already installed and the config files have one of it setup
 #  wezterm, lazyvim, doom-emacs, vscode, btop, desktop
+set -x
 if $TO_DARK; then
   sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/wezterm/sv_common.lua
   sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/nvim/lua/plugins/colorscheme.lua
@@ -33,7 +34,7 @@ if $TO_DARK; then
       lookandfeeltool -a org.kde.breezedark.desktop
       ;;
     "cinnamon")
-      gsettings set org.cinnamon.desktop.interface gtk-theme 'Mint-Y-Dark-Aqua'
+      gsettings set org.cinnamon.desktop.interface gtk-theme 'Mint-Y-Dark'
       ;;
     *)
       echo "Unchanged for $XDG_SESSION_DESKTOP"
@@ -54,10 +55,11 @@ else
       lookandfeeltool -a org.kde.breeze.desktop
       ;;
     "cinnamon")
-      gsettings set org.cinnamon.desktop.interface gtk-theme 'Mint-Y-Aqua'
+      gsettings set org.cinnamon.desktop.interface gtk-theme 'Mint-Y'
       ;;
     *)
       echo "Unchanged for $XDG_SESSION_DESKTOP"
       ;;
   esac
 fi
+set +x
