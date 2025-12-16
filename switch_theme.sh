@@ -28,6 +28,7 @@ if $TO_DARK; then
   sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/doom/config.el
   sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/Code/User/settings.json
   sed -i --follow-symlinks "s/Latte/Frappé/g" ~/.config/Code/User/settings.json
+  sed -i --follow-symlinks "s/Latte/Frappé/g" ~/.config/Antigravity/User/settings.json
   sed -i --follow-symlinks "s/latte/frappe/g" ~/.config/btop/btop.conf
   case  "$XDG_SESSION_DESKTOP" in
     "KDE")
@@ -49,6 +50,7 @@ else
   sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/doom/config.el
   sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/Code/User/settings.json
   sed -i --follow-symlinks "s/Frappé/Latte/g" ~/.config/Code/User/settings.json
+  sed -i --follow-symlinks "s/Frappé/Latte/g" ~/.config/Antigravity/User/settings.json
   sed -i --follow-symlinks "s/frappe/latte/g" ~/.config/btop/btop.conf
   case  "$XDG_SESSION_DESKTOP" in
     "KDE")
