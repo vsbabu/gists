@@ -1,7 +1,11 @@
 #!/bin/bash
 
 # Quick script to switch between dark and light themese for editors I use
-# on LinuxMint.
+# on LinuxMint. 
+# 
+# TODO: Ideally, current mode should be saved somewhere along with
+#       a forced switch argument to not do unnecessary work.
+#
 TO_DARK=false
 TO_MIXED=false
 if [ $# -ge 1 ]; then
@@ -19,6 +23,13 @@ else
     TO_DARK=true
   fi
 fi
+# This is just to make sure custom gtk file is clean. It is used only for mixed mode
+# Cinnamon needs to be restarted after a change of this file. I prefer doing it manually
+# from Panel right click -> Troubleshoot -> Restart Cinnamon
+# If you want to do it automatically, uncomment the line at the bottom of the script
+mkdir -p ~/.config/gtk-3.0/
+echo >~/.config/gtk-3.0/gtk.css
+
 # Switch between Catppuccin Frappe and Latte flavours. Assumption is that these
 # are already installed and the config files have one of it setup
 #  wezterm, lazyvim, doom-emacs, vscode, btop, desktop
@@ -87,6 +98,37 @@ if $TO_MIXED; then
     gsettings set org.cinnamon.theme name 'Mint-Y-Dark-NordzyGreen'
     gsettings set org.cinnamon.desktop.interface icon-theme 'Nordzy-green-dark'
     gsettings set org.gnome.desktop.interface icon-theme 'Nordzy-green-dark'
+    # for mixed, I like to have window decorations in dark background bar
+    cat >~/.config/gtk-3.0/gtk.css <<EOF
+.titlebar, headerbar {
+  background: #3d3d3d;
+  border-color: #3d3d3d;
+  border-width: 0 0 0px;
+  border-style: solid;
+  box-shadow: none;
+  color:white;
+}
+
+.titlebar:backdrop, headerbar:backdrop {
+  background: #4c4a48;
+  border-color: #4c4a48;
+  box-shadow: none;
+  color:white;
+}
+
+button.titlebutton:not(.appmenu) {
+  padding: 0;
+  color: #FFFFFF;
+}
+headerbar button.titlebutton.maximize:not(.appmenu):hover, headerbar button.titlebutton.maximize:not(.appmenu):backdrop:hover, headerbar button.titlebutton.minimize:not(.appmenu):hover, headerbar button.titlebutton.minimize:not(.appmenu):backdrop:hover, .titlebar button.titlebutton.maximize:not(.appmenu):hover, .titlebar button.titlebutton.maximize:not(.appmenu):backdrop:hover, .titlebar button.titlebutton.minimize:not(.appmenu):hover, .titlebar button.titlebutton.minimize:not(.appmenu):backdrop:hover, headerbar.selection-mode button.titlebutton.maximize:not(.appmenu):hover, headerbar.selection-mode button.titlebutton.maximize:not(.appmenu):backdrop:hover, headerbar.selection-mode button.titlebutton.minimize:not(.appmenu):hover, headerbar.selection-mode button.titlebutton.minimize:not(.appmenu):backdrop:hover, button.titlebutton.maximize:not(.appmenu):hover, button.titlebutton.maximize:not(.appmenu):backdrop:hover, button.titlebutton.minimize:not(.appmenu):hover, button.titlebutton.minimize:not(.appmenu):backdrop:hover {
+  color: #FFFFFF;
+  background-image: -gtk-gradient(radial, center center, 0, center center, 0.3571428571, to(#4f4f4f), to(transparent)); 
+}
+headerbar button.titlebutton.maximize:not(.appmenu):active, headerbar button.titlebutton.maximize:not(.appmenu):backdrop:active, headerbar button.titlebutton.minimize:not(.appmenu):active, headerbar button.titlebutton.minimize:not(.appmenu):backdrop:active, .titlebar button.titlebutton.maximize:not(.appmenu):active, .titlebar button.titlebutton.maximize:not(.appmenu):backdrop:active, .titlebar button.titlebutton.minimize:not(.appmenu):active, .titlebar button.titlebutton.minimize:not(.appmenu):backdrop:active, headerbar.selection-mode button.titlebutton.maximize:not(.appmenu):active, headerbar.selection-mode button.titlebutton.maximize:not(.appmenu):backdrop:active, headerbar.selection-mode button.titlebutton.minimize:not(.appmenu):active, headerbar.selection-mode button.titlebutton.minimize:not(.appmenu):backdrop:active, button.titlebutton.maximize:not(.appmenu):active, button.titlebutton.maximize:not(.appmenu):backdrop:active, button.titlebutton.minimize:not(.appmenu):active, button.titlebutton.minimize:not(.appmenu):backdrop:active {
+  color: #FFFFFF;
+  background-image: -gtk-gradient(radial, center center, 0, center center, 0.3571428571, to(#5c5c5c), to(transparent));
+}
+EOF
     ;;
   *)
     echo "Unchanged for $XDG_SESSION_DESKTOP"
@@ -94,3 +136,5 @@ if $TO_MIXED; then
   esac
 fi
 set +x
+# Uncomment if you want Cinnamon to be restarted automatically
+# nohup cinnamon --replace >/tmp/cinnamon.log 2>&1 &
