@@ -18,7 +18,7 @@ error() { log ERROR "$@"; }
 
 MAXCOUNTER=5
 DELAY=2
-BROWSER_BIN="vivaldi"
+BROWSER_BIN=${1:-"vivaldi"}
 
 #set window name
 case $BROWSER_BIN in
