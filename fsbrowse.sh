@@ -4,6 +4,7 @@
 #  then full screen it.
 #  Vivaldi is already setup to always start with empty tab and startpage
 
+LOG_FILE="/tmp/$(basename $0).log"
 log() {
   local lvl="$1"
   shift
