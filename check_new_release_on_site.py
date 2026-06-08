@@ -98,6 +98,15 @@ if __name__ == "__main__":
         # fmt: on
     )
 
+    sites["Practigal"] = ReleaseSite(
+        name="Practigal",
+        url="https://github.com/pragtical/pragtical/tags",
+        download_url="https://github.com/pragtical/pragtical/releases/download/{0}/pragtical-{0}-linux-x86_64-portable.tar.gz",
+        # fmt: off
+        extractor=lambda x: x.find_all("a", class_="Link--primary")[1].get_text().strip(),  # pyright: ignore # type: ignore
+        # fmt: on
+    )
+
     for k in sites.keys():
         s = sites.get(k)  # pyright: ignore[]
         # fmt: off
