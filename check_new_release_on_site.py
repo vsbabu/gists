@@ -107,6 +107,16 @@ if __name__ == "__main__":
         # fmt: on
     )
 
+    sites["Helium"] = ReleaseSite(
+        name="Helium",
+        url="https://github.com/imputnet/helium-linux/releases",
+        download_url="https://github.com/imputnet/helium-linux/releases/download/{0}/helium-bin_{0}-1_amd64.deb",
+        # fmt: off
+        extractor=lambda x: x.find("a", href="/imputnet/helium-linux/releases/latest").find_previous("a").text.strip() ,  # pyright: ignore # type: ignore
+        # fmt: on
+    )
+
+
     for k in sites.keys():
         s = sites.get(k)  # pyright: ignore[]
         # fmt: off
