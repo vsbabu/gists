@@ -9,30 +9,30 @@
 Quick python3 script to check if a new release has been done for some software I use. Currently, works for
 Zen Browser and SQLPage. been
 
-Dependencies: BeautifulSoup4 
+Dependencies: BeautifulSoup4
 
 Script gets the web page content from release page and parses it for release list. Takes the latest release
-from that. 
+from that.
 
 The list of such software => release information is serialized using pickle. If a new release is
 detected which is different from pickled one, the download url is printed out. Pickle file is created
 from where you ran the script from and with the name as script file name with a .db extention.
 
-It is assumed that you download and  install it separately. Yes, we can automate the --version check 
+It is assumed that you download and  install it separately. Yes, we can automate the --version check
 and download for those, but I would rather manually download and install after going over release notes.
 """
+
+import logging
+import os
+import pickle
+import re
+import sys
+import traceback
 from dataclasses import dataclass
 from types import FunctionType
 
-from bs4 import BeautifulSoup
 import requests
-import pickle
-
-import traceback
-import logging
-import sys
-import os
-import re
+from bs4 import BeautifulSoup
 
 
 @dataclass
@@ -77,7 +77,7 @@ if __name__ == "__main__":
         url="https://zen-browser.app/release-notes/",
         download_url="https://zen-browser.app/download/ manually {0}",
         # fmt: off
-        extractor=lambda x: x.find("section", class_="release-note-item")['id'] # pyright: ignore
+        extractor=lambda x: x.find("section", class_="release-note-item")["id"],  # pyright: ignore # type: ignore
         # fmt: on
     )
     sites["SQLPage"] = ReleaseSite(
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         url="https://github.com/sqlpage/SQLPage/tags",
         download_url="https://github.com/sqlpage/SQLPage/releases/download/{0}/sqlpage-linux.tgz",
         # fmt: off
-        extractor=lambda x: x.find("a", class_="Link--primary").text.strip() # pyright: ignore
+        extractor=lambda x: x.find("a", class_="Link--primary").text.strip(),  # pyright: ignore # type: ignore
         # fmt: on
     )
 
@@ -94,7 +94,9 @@ if __name__ == "__main__":
         url="https://joplinapp.org/help/install/",
         download_url="https://objects.joplinusercontent.com/v{0}/Joplin-{0}.AppImage?source=JoplinWebsite&type=New",
         # fmt: off
-        extractor=lambda x: x.find('a', href=re.compile(r".*?AppImage\?source=.*?")).get('href').split("/")[3][1:] #pyright: ignore
+        extractor=lambda x: x.find("a", href=re.compile(r".*?AppImage\?source=.*?"))
+        .get("href")
+        .split("/")[3][1:],  # pyright: ignore # type: ignore
         # fmt: on
     )
 
@@ -116,6 +118,14 @@ if __name__ == "__main__":
         # fmt: on
     )
 
+    sites["Zellij"] = ReleaseSite(
+        name="Zellij",
+        url="https://github.com/zellij-org/zellij/releases",
+        download_url="https://github.com/zellij-org/zellij/releases/download/{0}/zellij-no-web-x86_64-unknown-linux-musl.tar.gz",
+        # fmt: off
+        extractor=lambda x: x.find("a", href="/zellij-org/zellij/releases/latest").find_previous("a").text.strip().split()[-1] ,  # pyright: ignore # type: ignore
+        # fmt: on
+    )
 
     for k in sites.keys():
         s = sites.get(k)  # pyright: ignore[]
@@ -127,13 +137,13 @@ if __name__ == "__main__":
             s.get_latest_release()
         except Exception:
             logging.error("%s -> error getting latest release" % s.name)
-            logging.error(traceback.format_exc())            
+            logging.error(traceback.format_exc())
             continue
         downloadable = True
         cache = saved.get(s.name)
         if cache is not None and cache.found_release == s.found_release:
             downloadable = False
-        logging.info("%s -> found  %s" %(s.name, s.found_release))
+        logging.info("%s -> found  %s" % (s.name, s.found_release))
         if downloadable:
             logging.info("\t get %s" % s.get_download_url())
 
