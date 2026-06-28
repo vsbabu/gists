@@ -1,0 +1,104 @@
+#!/bin/sh
+
+#
+#   https://gitlab.com/xPMo/dotfiles.cli/-/blob/dots/.local/guibin/swaylock-wrapper
+#
+#   https://www.reddit.com/r/swaywm/comments/n344ey/comment/gwqjzuw/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button
+#
+#
+
+die() {
+	ret=$?
+	# assume we should exit non-zero,
+	# unless $err is explicitly set
+	[ "$ret" -eq 0 ] && ret=1
+
+	prg=${0##*/}
+	printf >&2 '\n%s\n' ${1+"$prg: $1"} \
+		"Usage: $prg [ magick args ... ]
+
+A script which gets the active outputs and locks the screen based
+on the graphicsmagick conversion filter provided.
+
+Each output's grim + graphicsmagick instance is run in parallel
+
+Examples:
+
+	# scale-based pixelate
+	$prg -scale 20% -scale 500%
+
+	# sample-based pixelate and desaturate
+	$prg -sample 20% -modulate 100,50 -sample 500%
+
+	# blur
+	$prg -blur 0x4
+
+	# composite an icon in the center
+	$prg -sample 10% -sample 1000% \\
+		-gravity center /path/to/a/lock-icon.png -composite
+
+	# composite the text 'Locked' in the center
+	$prg -sample 10% -sample 1000% \\
+		-gravity center -background none -fill white \\
+		-font 'Noto Sans' -pointsize 80 label:'Locked' \\
+		-composite
+	"
+
+	exit "${err-$ret}"
+}
+
+# help text via redirection to stdout
+case $1 in -h | --help | help)
+	err=0 die 2>&1
+	;;
+esac
+
+[ -n "$1" ] || die
+
+dir=$(mktemp -d) || die
+trap '{ rm -r "${dir?}"; return $?; }' INT EXIT
+
+if [ -n "${SWAYSOCK+x}" ]; then
+	swaymsg -t get_outputs | jq -r '.[]|select(.active).name'
+elif [ -n "${NIRI_SOCKET+x}" ]; then
+	niri msg -j outputs | jq -r '.[].name'
+else
+	printf '%s\n' eDP-1
+fi | {
+
+	while read -r output; do
+          # ppm is a bitmapped format supported by grim, magick, and swaylock
+          img="$dir/$output.ppm"
+          {
+            # shift past swaylock args
+            shift "$((i))"
+            grim -t ppm -o "$output" "$img"  &&
+              gm convert "$img" "$@" "$img"
+          }& 
+          pids="$pids $!"
+
+          # prepend to argument list
+          set -- "--image=$output:$img" "$@"
+          : $((i = i + 1))
+	done
+	# POSIX wait will only exit non-zero if the last PID given to it exits non-zero
+	#shellcheck disable=2086
+	for pid in $pids; do
+          wait "$pid" || die '`grim'\'' or `gm'\'' exited non-zero. Try checking your filter.'
+	done
+
+	# remove all args, add back swaylock args
+	for arg; do
+		if ! ${img+false}; then
+			set --
+			unset img
+		fi
+		set -- "$arg" "$@"
+		[ $((i = i - 1)) = 0 ] && break
+	done
+	swaylock "$@" &
+	sleep 0.5
+	pkill -10 nwg-wrapper
+	wait
+	pkill -10 nwg-wrapper
+}
