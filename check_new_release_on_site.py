@@ -127,6 +127,15 @@ if __name__ == "__main__":
         # fmt: on
     )
 
+    sites["Herdr"] = ReleaseSite(
+        name="Herdr",
+        url="https://github.com/ogulcancelik/herdr/releases",
+        download_url="https://github.com/ogulcancelik/herdr/releases/download/{0}/herdr-linux-x86_64",
+        # fmt: off
+        extractor=lambda x: x.find("a", href="/ogulcancelik/herdr/releases/latest").find_previous("a").text.strip().split()[-1] ,  # pyright: ignore # type: ignore
+        # fmt: on
+    )
+
     for k in sites.keys():
         s = sites.get(k)  # pyright: ignore[]
         # fmt: off
