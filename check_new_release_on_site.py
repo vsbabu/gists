@@ -79,7 +79,7 @@ if __name__ == "__main__":
     sites["Zen-browser"] = ReleaseSite(
         name="Zen-browser",
         url="https://zen-browser.app/release-notes/",
-        download_url_template="https://zen-browser.app/download/ manually {download_url}",
+        download_url_template="https://zen-browser.app/download/ (manual)",
         # fmt: off
         extractor=lambda x: x.find("section", class_="release-note-item")["id"],  # pyright: ignore # type: ignore
         # fmt: on
@@ -164,10 +164,11 @@ if __name__ == "__main__":
         cache = saved.get(s.name)
         if cache is not None and cache.found_release == s.found_release:
             downloadable = False
-        logging.info("%s -> found  %s" % (s.name, s.found_release))
+        download_url = "\033[32m\u2713\033[0m"
         if downloadable:
-            logging.info("\t get %s" % s.download_url)
+            download_url = s.download_url
             install_scripts.append(s.install_script)
+        logging.info(" %20s | %-10s | %s" % (s.name, s.found_release, download_url))
 
     f = open(dbfile, "wb")
     pickle.dump(sites, f)
@@ -178,8 +179,10 @@ if __name__ == "__main__":
         print("============================================")
         print("Installation script that can be run is below")
         print("============================================")
+        print("CURDIR=`pwd`")
         for s in install_scripts:
-            print(s)
+            print(s, end="")
+        print("\ncd $CURDIR")
 
 ###  unused software; you need to add download_and_install_script_template
 #    sites["Joplin"] = ReleaseSite(
