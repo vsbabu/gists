@@ -7,7 +7,7 @@
 # ///
 """
 Quick python3 script to check if a new release has been done for some software I use. Currently, works for
-Zen Browser and SQLPage. been
+Zen Browser and SQLPage and some more that I use.
 
 Dependencies: BeautifulSoup4
 
@@ -28,6 +28,7 @@ import pickle
 import re
 import sys
 import traceback
+import textwrap
 from dataclasses import dataclass
 from types import FunctionType
 
@@ -43,6 +44,7 @@ class ReleaseSite:
     # fmt: off
     extractor:  FunctionType  # pass a function/lambda to parse html to get the latest version
     # fmt: on
+    install_script_template: str = "" # {0} is download url {1} is version
     found_release: str = ""
 
     def get_latest_release(self) -> str:
@@ -53,6 +55,10 @@ class ReleaseSite:
 
     def get_download_url(self) -> str:
         return self.download_url.format(self.found_release)
+
+    def get_download_and_install_script(self) -> str:
+        return textwrap.dedent(self.install_script_template.format(self.get_download_url(), self.found_release))
+
 
     # remove FunctionType from list of pickled items
     def __getstate__(self):
@@ -80,6 +86,7 @@ if __name__ == "__main__":
         extractor=lambda x: x.find("section", class_="release-note-item")["id"],  # pyright: ignore # type: ignore
         # fmt: on
     )
+
     sites["SQLPage"] = ReleaseSite(
         name="SQLPage",
         url="https://github.com/sqlpage/SQLPage/tags",
@@ -87,26 +94,13 @@ if __name__ == "__main__":
         # fmt: off
         extractor=lambda x: x.find("a", class_="Link--primary").text.strip(),  # pyright: ignore # type: ignore
         # fmt: on
-    )
-
-    sites["Joplin"] = ReleaseSite(
-        name="Joplin",
-        url="https://joplinapp.org/help/install/",
-        download_url="https://objects.joplinusercontent.com/v{0}/Joplin-{0}.AppImage?source=JoplinWebsite&type=New",
-        # fmt: off
-        extractor=lambda x: x.find("a", href=re.compile(r".*?AppImage\?source=.*?"))
-        .get("href")
-        .split("/")[3][1:],  # pyright: ignore # type: ignore
-        # fmt: on
-    )
-
-    sites["Pragtical"] = ReleaseSite(
-        name="Pragtical",
-        url="https://github.com/pragtical/pragtical/tags",
-        download_url="https://github.com/pragtical/pragtical/releases/download/{0}/pragtical-{0}-linux-x86_64-portable.tar.gz",
-        # fmt: off
-        extractor=lambda x: x.find("a", class_="Link--primary", string=re.compile(r"""^\s*v\d+\.""")).text.strip(),  # pyright: ignore # type: ignore
-        # fmt: on
+        install_script_template = """
+        cd /tmp/
+        rm -f sqlpage-linux.tgz
+        wget --timeout=10 --tries=2  {0}
+        cd ~/.local/bin/
+        tar -xvzf /tmp/sqlpage-linux.tgz
+        """
     )
 
     sites["Helium"] = ReleaseSite(
@@ -116,15 +110,12 @@ if __name__ == "__main__":
         # fmt: off
         extractor=lambda x: x.find("a", href="/imputnet/helium-linux/releases/latest").find_previous("a").text.strip() ,  # pyright: ignore # type: ignore
         # fmt: on
-    )
-
-    sites["Zellij"] = ReleaseSite(
-        name="Zellij",
-        url="https://github.com/zellij-org/zellij/releases",
-        download_url="https://github.com/zellij-org/zellij/releases/download/{0}/zellij-no-web-x86_64-unknown-linux-musl.tar.gz",
-        # fmt: off
-        extractor=lambda x: x.find("a", href="/zellij-org/zellij/releases/latest").find_previous("a").text.strip().split()[-1] ,  # pyright: ignore # type: ignore
-        # fmt: on
+        install_script_template = """
+        cd /tmp/
+        rm -f helium-bin_{1}-1_amd64.deb*
+        wget --timeout=10 --tries=2  {0}
+        sudo dpkg -i helium-bin_{1}-1_amd64.deb
+        """
     )
 
     sites["Herdr"] = ReleaseSite(
@@ -134,8 +125,35 @@ if __name__ == "__main__":
         # fmt: off
         extractor=lambda x: x.find("a", href="/herdrdev/herdr/releases/latest").find_previous("a").text.strip().split()[-1] ,  # pyright: ignore # type: ignore
         # fmt: on
+        install_script_template = """
+        cd /tmp/
+        rm -f herdr-linux-x86_64
+        wget --timeout=10 --tries=2  {0}
+        cd ~/.local/bin/
+        rm herdr
+        mv /tmp/herdr-linux-x86_64 herdr
+        chmod +x herdr
+        """
     )
 
+    sites["px0"] = ReleaseSite(
+        name="px0",
+        url="https://github.com/px0-ai/px0/releases",
+        download_url="https://github.com/px0-ai/px0/releases/download/v{0}/px0-{0}-linux-amd64",
+        # fmt: off
+        extractor=lambda x: x.find("a", href="/px0-ai/px0/releases/latest").find_previous("a").text.strip().split()[-1][1:] ,  # pyright: ignore # type: ignore
+        # fmt: on}
+        install_script_template = """
+        cd /tmp/
+        rm -f px0-{1}-linux-amd64
+        wget --timeout=10 --tries=2  {0}
+        cd ~/.local/bin/
+        mv /tmp/px0-{1}-linux-amd64 px0
+        chmod +x px0
+        """
+    )
+
+    install_scripts = []
     for k in sites.keys():
         s = sites.get(k)  # pyright: ignore[]
         # fmt: off
@@ -155,7 +173,44 @@ if __name__ == "__main__":
         logging.info("%s -> found  %s" % (s.name, s.found_release))
         if downloadable:
             logging.info("\t get %s" % s.get_download_url())
+            install_scripts.append(s.get_download_and_install_script())
 
     f = open(dbfile, "wb")
     pickle.dump(sites, f)
     f.close()
+
+    if len(install_scripts) > 0:
+        print("\n")
+        print("============================================")
+        print("Installation script that can be run is below")
+        print("============================================")
+        for s in install_scripts:
+            print(s)
+
+###  unused software; you need to add download_and_install_script_template
+#    sites["Joplin"] = ReleaseSite(
+#        name="Joplin",
+#        url="https://joplinapp.org/help/install/",
+#        download_url="https://objects.joplinusercontent.com/v{0}/Joplin-{0}.AppImage?source=JoplinWebsite&type=New",
+#        # fmt: off
+#        extractor=lambda x: x.find("a", href=re.compile(r".*?AppImage\?source=.*?")).get("href").split("/")[3][1:],  # pyright: ignore # type: ignore
+#        # fmt: on
+#    )
+#
+#    sites["Pragtical"] = ReleaseSite(
+#        name="Pragtical",
+#        url="https://github.com/pragtical/pragtical/tags",
+#        download_url="https://github.com/pragtical/pragtical/releases/download/{0}/pragtical-{0}-linux-x86_64-portable.tar.gz",
+#        # fmt: off
+#        extractor=lambda x: x.find("a", class_="Link--primary", string=re.compile(r"""^\s*v\d+\.""")).text.strip(),  # pyright: ignore # type: ignore
+#        # fmt: on
+#    )
+#
+#    sites["Zellij"] = ReleaseSite(
+#        name="Zellij",
+#        url="https://github.com/zellij-org/zellij/releases",
+#        download_url="https://github.com/zellij-org/zellij/releases/download/{0}/zellij-no-web-x86_64-unknown-linux-musl.tar.gz",
+#        # fmt: off
+#        extractor=lambda x: x.find("a", href="/zellij-org/zellij/releases/latest").find_previous("a").text.strip().split()[-1] ,  # pyright: ignore # type: ignore
+#        # fmt: on
+#    )
