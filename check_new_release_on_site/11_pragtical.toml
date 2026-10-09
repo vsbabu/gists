@@ -1,0 +1,11 @@
+name = "Pragtical"
+url = "https://github.com/pragtical/pragtical/releases"
+extractor = """lambda x: x.find("a", href="/pragtical/pragtical/releases/latest").find_previous("a").text.strip().split()[-1]"""
+download_url_template = "https://github.com/pragtical/pragtical/releases/download/{found_release}/pragtical-{found_release}-linux-x86_64-portable.tar.gz"
+install_script_template = """
+cd /tmp/
+rm -f pragtical-{found_release}-linux-x86_64-portable.tar.gz
+wget --timeout=10 --tries=2  {download_url}
+cd ~/Apps/pragtical/
+tar -xvzf /tmp/pragtical-{found_release}-linux-x86_64-portable.tar.gz
+"""

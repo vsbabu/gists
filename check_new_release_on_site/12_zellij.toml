@@ -1,0 +1,11 @@
+name = "Zellij"
+url = "https://github.com/zellij-org/zellij/releases"
+extractor = """lambda x: x.find("a", href="/zellij-org/zellij/releases/latest").find_previous("a").text.strip().split()[-1]"""
+download_url_template = "https://github.com/zellij-org/zellij/releases/download/{found_release}/zellij-no-web-x86_64-unknown-linux-musl.tar.gz"
+install_script_template = """
+cd /tmp/
+rm -f zellij-no-web-x86_64-unknown-linux-musl.tar.gz
+wget --timeout=10 --tries=2  {download_url}
+cd ~/.local/bin/
+tar -xvzf /tmp/zellij-no-web-x86_64-unknown-linux-musl.tar.gz
+"""

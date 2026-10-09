@@ -1,0 +1,5 @@
+name = "Zen-browser"
+url  = """https://zen-browser.app/release-notes/"""
+extractor = "lambda x: x.find('section', class_='release-note-item')['id']"
+download_url_template = "https://zen-browser.app/download/ (manual)"
+install_script_template = ""

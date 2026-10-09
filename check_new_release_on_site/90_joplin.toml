@@ -1,0 +1,13 @@
+
+name = "Joplin"
+url  = "https://joplinapp.org/help/install/"
+extractor = '''lambda x: x.find("a", href=re.compile(r".*?AppImage\?source=.*?")).get("href").split("/")[3][1:]'''
+download_url_template = "https://objects.joplinusercontent.com/v{found_release}/Joplin-{found_release}.AppImage?source=JoplinWebsite&type=New"
+install_script_template = """
+cd /tmp/
+rm -f Joplin-{found_release}.AppImage
+wget --timeout=10 --tries=2  {download_url}
+cd ~/.local/bin/
+mv /tmp/Joplin-{found_release}.AppImage .
+chmod +x Joplin*.AppImage
+"""

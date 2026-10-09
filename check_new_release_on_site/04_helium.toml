@@ -1,0 +1,10 @@
+name = "Helium"
+url  = "https://github.com/imputnet/helium-linux/releases"
+extractor = """lambda x: x.find('a', href='/imputnet/helium-linux/releases/latest').find_previous('a').text.strip()"""
+download_url_template = "https://github.com/imputnet/helium-linux/releases/download/{found_release}/helium-bin_{found_release}-1_amd64.deb"
+install_script_template = """
+cd /tmp/
+rm -f helium-bin_{found_release}-1_amd64.deb*
+wget --timeout=10 --tries=2  {download_url}
+sudo dpkg -i helium-bin_{found_release}-1_amd64.deb
+"""

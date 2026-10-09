@@ -1,0 +1,11 @@
+name = "SQLPage"
+url  = "https://github.com/sqlpage/SQLPage/tags"
+extractor = """lambda x: x.find('a', class_='Link--primary').text.strip()"""
+download_url_template ="https://github.com/sqlpage/SQLPage/releases/download/{found_release}/sqlpage-linux.tgz"
+install_script_template = """
+cd /tmp/
+rm -f sqlpage-linux.tgz
+wget --timeout=10 --tries=2  {download_url}
+cd ~/.local/bin/
+tar -xvzf /tmp/sqlpage-linux.tgz
+"""
