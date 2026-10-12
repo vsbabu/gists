@@ -44,12 +44,20 @@ import signal
 from functools import partial
 from threading import Event
 
+from pathlib import Path
+import tempfile
+
+from rich.console import Console 
+from rich.logging import RichHandler
+from rich.table import Table
+
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s|%(levelname)s|%(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
+    level    =logging.INFO,
+    format   ="%(asctime)s|%(levelname)s|%(message)s",
+    datefmt  ="%Y-%m-%d %H:%M:%S",
+    handlers = [RichHandler()]
 )
-log = logging.getLogger()
+log = logging.getLogger("rich")
 
 def resolve_lambda(lambda_str: str) -> FunctionType:
     """Safely evaluates a lambda string expression into a live function."""
@@ -129,9 +137,7 @@ def check_downloadable(s:ReleaseSite, saved) -> ReleaseSite:
         s.downloadable = False
         log.debug("Cached version is same as latest version -> %s" % s.found_release)
     saved[s.name] = s
-    download_url = "\033[32m\u2713\033[0m" #default is a "tick" to indicate no download needed
-    #download_url = "[green]✓[/green]"
-    #download_url = " ✓ "
+    download_url = "[green] ✓ [/green]"
     if s.downloadable:
         download_url = s.download_url
         if s.install_script.strip() != "":
@@ -155,45 +161,59 @@ if __name__ == "__main__":
     else:
         sys.exit(0)
 
+    console = Console()
 
     tasks = []
-    for i,rs in enumerate(sys.argv[1:]):
-        log.debug("Loading site config from -> %s" % rs)
-        try:
-            s = ReleaseSite.from_toml(rs)
-        except Exception as e:
-            log.error("%s -> error loading config file" % rs)
-            log.error(traceback.format_exc())
-            continue
-        tasks.append(s) 
+    with console.status("[green]Processing...[/green]", spinner="dots") as status:
+        for i,rs in enumerate(sys.argv[1:]):
+            log.debug("Loading site config from -> %s" % rs)
+            try:
+                s = ReleaseSite.from_toml(rs)
+            except Exception as e:
+                log.error("%s -> error loading config file" % rs)
+                log.error(traceback.format_exc())
+                continue
+            tasks.append(s) 
 
-    done_event = Event()
-    signal.signal(signal.SIGINT, handle_sigint)
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        log.info("Release url page check: start")
-        futures = [pool.submit(check_downloadable, s, saved) for s in tasks]
-        for f in futures: #wait for completion of all
-            f.result()
-        log.info("Release url page check: finish")
-    f = open(dbfile, "wb")
-    pickle.dump(saved, f)
-    f.close()
+        done_event = Event()
+        signal.signal(signal.SIGINT, handle_sigint)
+        status.update("[green]Configured %d tasks[/green]"% (len(tasks)), spinner="dots10")
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            log.debug("Release url page check: start")
+            futures = [pool.submit(check_downloadable, s, saved) for s in tasks]
+            status.update("[green]Queued %d tasks[/green]"% (len(tasks)), spinner="dots11")
+            for f in futures: #wait for completion of all
+                f.result()
+            status.update("[green]Found latest versions for %d tasks[/green]"% (len(tasks)), spinner="dots12")
+            log.debug("Release url page check: finish")
+        f = open(dbfile, "wb")
+        pickle.dump(saved, f)
+        f.close()
 
-    for i,s in enumerate(tasks):
-        if i == 0:
-            log.info(" # | %20s | %-10s | %s" % ("Name", "Latest", "Download"))
-        if s.downloadable and s.install_script.strip() != "":
-            install_scripts.append(s.install_script)
-        log.info(" %d | %20s | %-10s | %s" % (i+1, s.name, s.found_release, s.download_url))
+        table = Table()
+        table.add_column("#", style="dim", width=5, justify="center" )
+        table.add_column("Application")
+        table.add_column("Version", style="cyan")
+        table.add_column("URL", justify="left")
+        for i,s in enumerate(tasks):
+            if i == 0:
+                log.debug(" # | %20s | %-10s | %s" % ("Name", "Latest", "Download"))
+            if s.downloadable and s.install_script.strip() != "":
+                install_scripts.append(s.install_script)
+            log.debug(" %d | %20s | %-10s | %s" % (i+1, s.name, s.found_release, s.download_url))
+            table.add_row(str(i+1), s.name, s.found_release, s.download_url)
+        console.print(table)
 
     if len(install_scripts) > 0:
-        print("\n")
-        print("============================================")
-        print("Installation script that can be run is below")
-        print("============================================")
-        print("CURDIR=`pwd`")
-        for s in install_scripts:
-            print(s, end="")
-        print("\ncd $CURDIR")
-
+        tmp_dir = os.environ.get("TMPDIR", tempfile.gettempdir())
+        shfile = os.path.join(tmp_dir, os.path.basename(sys.argv[0]) + ".sh")
+        with open(shfile, "w", encoding="utf-8") as file:
+            file.write("#!/bin/bash\n")
+            file.write("CURDIR=`pwd`\n")
+            for s in install_scripts:
+                file.write(s)
+                file.write("\n")
+            file.write("cd $CURDIR\n")
+        os.chmod(shfile, 0o755)
+        console.print("Installation steps are in %s" % shfile)
 
