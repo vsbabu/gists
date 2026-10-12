@@ -39,6 +39,18 @@ from dataclasses import dataclass, field
 import requests
 from bs4 import BeautifulSoup
 
+from concurrent.futures import ThreadPoolExecutor
+import signal
+from functools import partial
+from threading import Event
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s|%(levelname)s|%(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+log = logging.getLogger()
+
 def resolve_lambda(lambda_str: str) -> FunctionType:
     """Safely evaluates a lambda string expression into a live function."""
     if not isinstance(lambda_str, str):
@@ -67,6 +79,10 @@ class ReleaseSite:
     install_script_template: str = ""
     download_url_template: str = ""
 
+    found_release: str = ""
+    download_url: str = ""
+    downloadable: bool = None
+
     @classmethod
     def from_toml(cls, file_path: str) -> "ReleaseSite":
         with open(file_path, "rb") as f:
@@ -81,9 +97,9 @@ class ReleaseSite:
         try:
             self.found_release = self.extractor(soup)
         except Exception as e:
-            logging.error("error parsing latest release -> %s" % soup )
-            logging.error(traceback.format_exc())
-            #logging.error(inspect.getsource(self.extractor).strip())
+            log.error("error parsing latest release -> %s" % soup )
+            log.error(traceback.format_exc())
+            #log.error(inspect.getsource(self.extractor).strip())
             raise
         self.download_url =  self.download_url_template.format(**self.__dict__)
         self.install_script =  textwrap.dedent(self.install_script_template.format(**self.__dict__))
@@ -94,59 +110,90 @@ class ReleaseSite:
         d = dict(name = self.name, found_release = self.found_release)
         return d
 
+def handle_sigint(signum, frame):
+    done_event.set()
+
+def check_downloadable(s:ReleaseSite, saved) -> ReleaseSite:
+    log.debug("Parsing relase page for latest version -> %s" % s.name)
+    s.found_release = "."
+    try:
+        s.get_latest_release()
+        log.debug("Got latest version -> %s" % s.found_release)
+    except Exception as e:
+        log.error("%s -> error getting latest release" % s.name)
+        log.error(traceback.format_exc())
+        return s
+    s.downloadable = True
+    cache = saved.get(s.name)
+    if cache is not None and cache.found_release == s.found_release:
+        s.downloadable = False
+        log.debug("Cached version is same as latest version -> %s" % s.found_release)
+    saved[s.name] = s
+    download_url = "\033[32m\u2713\033[0m" #default is a "tick" to indicate no download needed
+    #download_url = "[green]✓[/green]"
+    #download_url = " ✓ "
+    if s.downloadable:
+        download_url = s.download_url
+        if s.install_script.strip() != "":
+            install_scripts.append(s.install_script)
+    s.download_url = download_url
+    return s
+
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
 
     if len(sys.argv) > 1:
         install_scripts = []
         dbfile = os.path.basename(sys.argv[0]) + ".db"
-        logging.debug("Unpickling -> %s" % dbfile)
+        log.debug("Unpickling -> %s" % dbfile)
         try:
             f = open(dbfile, "rb")
             saved = pickle.load(f)
             f.close()
         except FileNotFoundError:
             saved = dict()
-            logging.debug("No pickle cache found")
+            log.debug("No pickle cache found")
+    else:
+        sys.exit(0)
 
+
+    tasks = []
     for i,rs in enumerate(sys.argv[1:]):
-        logging.debug("Loading site config from -> %s" % rs)
+        log.debug("Loading site config from -> %s" % rs)
         try:
             s = ReleaseSite.from_toml(rs)
         except Exception as e:
-            logging.error("%s -> error loading config file" % rs)
-            logging.error(traceback.format_exc())
+            log.error("%s -> error loading config file" % rs)
+            log.error(traceback.format_exc())
             continue
-        logging.debug("Parsing relase page for latest version -> %s" % s.name)
-        try:
-            s.get_latest_release()
-        except Exception as e:
-            logging.error("%s -> error getting latest release" % s.name)
-            logging.error(traceback.format_exc())
-            continue
-        downloadable = True
-        cache = saved.get(s.name)
-        if cache is not None and cache.found_release == s.found_release:
-            downloadable = False
-        saved[s.name] = s
-        download_url = "\033[32m\u2713\033[0m" #default is a "tick" to indicate no download needed
-        if downloadable:
-            download_url = s.download_url
-            if s.install_script.strip() != "":
-                install_scripts.append(s.install_script)
-        logging.info("| %d | %20s | %-10s | %s" % (i+1, s.name, s.found_release, download_url))
+        tasks.append(s) 
 
-    if len(sys.argv) > 1:
-        f = open(dbfile, "wb")
-        pickle.dump(saved, f)
-        f.close()
+    done_event = Event()
+    signal.signal(signal.SIGINT, handle_sigint)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        log.info("Release url page check: start")
+        futures = [pool.submit(check_downloadable, s, saved) for s in tasks]
+        for f in futures: #wait for completion of all
+            f.result()
+        log.info("Release url page check: finish")
+    f = open(dbfile, "wb")
+    pickle.dump(saved, f)
+    f.close()
 
-        if len(install_scripts) > 0:
-            print("\n")
-            print("============================================")
-            print("Installation script that can be run is below")
-            print("============================================")
-            print("CURDIR=`pwd`")
-            for s in install_scripts:
-                print(s, end="")
-            print("\ncd $CURDIR")
+    for i,s in enumerate(tasks):
+        if i == 0:
+            log.info(" # | %20s | %-10s | %s" % ("Name", "Latest", "Download"))
+        if s.downloadable and s.install_script.strip() != "":
+            install_scripts.append(s.install_script)
+        log.info(" %d | %20s | %-10s | %s" % (i+1, s.name, s.found_release, s.download_url))
+
+    if len(install_scripts) > 0:
+        print("\n")
+        print("============================================")
+        print("Installation script that can be run is below")
+        print("============================================")
+        print("CURDIR=`pwd`")
+        for s in install_scripts:
+            print(s, end="")
+        print("\ncd $CURDIR")
+
+
