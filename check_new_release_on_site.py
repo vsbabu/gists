@@ -162,7 +162,6 @@ if __name__ == "__main__":
         sys.exit(0)
 
     console = Console()
-
     tasks = []
     with console.status("[green]Processing...[/green]", spinner="dots") as status:
         for i,rs in enumerate(sys.argv[1:]):
@@ -174,6 +173,10 @@ if __name__ == "__main__":
                 log.error(traceback.format_exc())
                 continue
             tasks.append(s)
+
+        if len(tasks) == 0:
+            log.error("No processable configs found. Exiting.")
+            sys.exit(1)
 
         done_event = Event()
         signal.signal(signal.SIGINT, handle_sigint)
