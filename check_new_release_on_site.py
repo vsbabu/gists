@@ -3,6 +3,7 @@
 # dependencies = [
 #     "bs4",
 #     "requests",
+#     "rich",
 # ]
 # ///
 """
@@ -25,28 +26,26 @@ It is assumed that you download and  install it separately. For convenience, a b
 changed versions are printed. You can copy-paste and run it.
 """
 
-import os
-import sys
-import re
-import pickle
 import logging
-import traceback
+import os
+import pickle
+
+# re support is provided in lambda in config files
+# disable ruff on this unused import
+import re  # noqa: F401
+import signal
+import sys
+import tempfile
 import textwrap
-import importlib
 import tomllib
+import traceback
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from threading import Event
 from types import FunctionType
-from dataclasses import dataclass, field
+
 import requests
 from bs4 import BeautifulSoup
-
-from concurrent.futures import ThreadPoolExecutor
-import signal
-from functools import partial
-from threading import Event
-
-from pathlib import Path
-import tempfile
-
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
@@ -105,39 +104,39 @@ class ReleaseSite:
         soup = BeautifulSoup(r.content, "html.parser")
         try:
             self.found_release = self.extractor(soup)
-        except Exception as e:
-            log.error("error parsing latest release -> %s" % soup )
+        except Exception:
+            log.error(f"error parsing latest release -> {soup}" )
             log.error(traceback.format_exc())
             #log.error(inspect.getsource(self.extractor).strip())
             raise
         self.download_url =  self.download_url_template.format(**self.__dict__)
         self.install_script =  textwrap.dedent(self.install_script_template.format(**self.__dict__))
-        log.debug("[%s] Found Latest Release " % self.name)
+        log.debug(f"Found Latest Release {self.name}")
         return self.found_release
 
     def __getstate__(self):
         # we need to keep only name and found_release in pickle for next run
-        d = dict(name = self.name, found_release = self.found_release)
+        d = {"name": self.name, "found_release": self.found_release}
         return d
 
 def handle_sigint(signum, frame):
     done_event.set()
 
 def check_downloadable(s:ReleaseSite, saved) -> ReleaseSite:
-    log.debug("Parsing relase page for latest version -> %s" % s.name)
+    log.debug(f"Parsing relase page for latest version -> {s.name}")
     s.found_release = "."
     try:
         s.get_latest_release()
-        log.debug("Got latest version -> %s" % s.found_release)
-    except Exception as e:
-        log.error("%s -> error getting latest release" % s.name)
+        log.debug(f"Got latest version -> {s.found_release}")
+    except Exception:
+        log.error(f"{s.name} -> error getting latest release")
         log.error(traceback.format_exc())
         return s
     s.downloadable = True
     cache = saved.get(s.name)
     if cache is not None and cache.found_release == s.found_release:
         s.downloadable = False
-        log.debug("Cached version is same as latest version -> %s" % s.found_release)
+        log.debug(f"Cached version is same as latest version -> {s.found_release}")
     saved[s.name] = s
     download_url = "[green] ✓ [/green]"
     if s.downloadable:
@@ -152,12 +151,12 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         install_scripts = []
         dbfile = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), os.path.basename(sys.argv[0]) + ".db")
-        log.debug("Unpickling -> %s" % dbfile)
+        log.debug(f"Unpickling -> {dbfile}")
         try:
             with open(dbfile, "rb") as f:
                 saved = pickle.load(f)
         except FileNotFoundError:
-            saved = dict()
+            saved = {}
             log.debug("No pickle cache found")
     else:
         sys.exit(0)
@@ -167,11 +166,11 @@ if __name__ == "__main__":
     tasks = []
     with console.status("[green]Processing...[/green]", spinner="dots") as status:
         for i,rs in enumerate(sys.argv[1:]):
-            log.debug("Loading site config from -> %s" % rs)
+            log.debug(f"Loading site config from -> {rs}")
             try:
                 s = ReleaseSite.from_toml(rs)
-            except Exception as e:
-                log.error("%s -> error loading config file" % rs)
+            except Exception:
+                log.error(f"{rs} -> error loading config file")
                 log.error(traceback.format_exc())
                 continue
             tasks.append(s)
@@ -216,4 +215,4 @@ if __name__ == "__main__":
                 log.debug(s)
             f.write("cd $CURDIR\n")
         os.chmod(shfile, 0o755)
-        console.print("Installation steps are in %s" % shfile)
+        console.print(f"Installation steps are in {shfile}")
